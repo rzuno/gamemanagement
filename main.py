@@ -130,16 +130,24 @@ class GameApp:
 
         h_frame = ttk.Frame(scroll_frame)
         h_frame.pack(fill=tk.X, pady=5)
-        cols = [("Title", 25), ("Genre", 15), ("Status", 10), ("Start", 10), ("Finish", 10), ("Score", 5)]
-        for name, w in cols:
-            ttk.Label(h_frame, text=name, width=w, font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=2)
+        cols = [
+            ("Title", "게임명", 25, "w"),
+            ("Genre", "장르", 15, "w"),
+            ("Status", "분류", 10, "center"),
+            ("Start", "시작", 12, "center"),
+            ("Finish", "마무리", 12, "center"),
+            ("Score", "총점", 6, "center"),
+        ]
+        for name, _, w, anchor in cols:
+            ttk.Label(h_frame, text=name, width=w, anchor=anchor, font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=2)
 
         # Use index from iterrows() which will match position due to reset_index in sort
         for index, row in self.evaluations_df.iterrows():
             row_frame = ttk.Frame(scroll_frame)
             row_frame.pack(fill=tk.X, pady=2)
             
-            def get_s(col): return str(row.get(col, ""))
+            def get_s(col):
+                return str(row.get(col, ""))
             
             # Format Score to 1 decimal place if it's a number
             raw_score = row.get('총점', '0')
@@ -148,12 +156,9 @@ class GameApp:
             except:
                 display_score = raw_score
 
-            ttk.Label(row_frame, text=get_s('게임명'), width=25, anchor="w").pack(side=tk.LEFT, padx=2)
-            ttk.Label(row_frame, text=get_s('장르'), width=15, anchor="w").pack(side=tk.LEFT, padx=2)
-            ttk.Label(row_frame, text=get_s('분류'), width=10, anchor="w").pack(side=tk.LEFT, padx=2)
-            ttk.Label(row_frame, text=get_s('시작'), width=10, anchor="w").pack(side=tk.LEFT, padx=2)
-            ttk.Label(row_frame, text=get_s('마무리'), width=10, anchor="w").pack(side=tk.LEFT, padx=2)
-            ttk.Label(row_frame, text=display_score, width=5, anchor="w").pack(side=tk.LEFT, padx=2)
+            for _, col_key, w, anchor in cols:
+                value = display_score if col_key == '총점' else get_s(col_key)
+                ttk.Label(row_frame, text=value, width=w, anchor=anchor).pack(side=tk.LEFT, padx=2)
             
             # Pass the current loop index (which is reliable after reset_index)
             ttk.Button(row_frame, text="📝 Details", command=lambda idx=index: self.show_game_details(idx)).pack(side=tk.LEFT, padx=5)
@@ -191,8 +196,42 @@ class GameApp:
         def on_status_change(_):
             self.evaluations_df.at[df_index, '분류'] = status_var.get()
             messagebox.showinfo("Updated", f"Status changed to {status_var.get()}")
-        
+
         status_cb.bind("<<ComboboxSelected>>", on_status_change)
+
+        genre_value = str(row.get('장르', ''))
+        start_value = str(row.get('시작', ''))
+        finish_value = str(row.get('마무리', ''))
+
+        info_frame = ttk.LabelFrame(self.content_frame, text="Game Info")
+        info_frame.pack(fill=tk.X, pady=(0, 10))
+
+        info_labels = ttk.Frame(info_frame)
+        info_labels.pack(fill=tk.X, padx=10, pady=(5, 10))
+        ttk.Label(info_labels, text=f"장르: {genre_value}", width=40, anchor="w").pack(side=tk.LEFT, padx=(0, 15))
+        ttk.Label(info_labels, text=f"시작: {start_value}", width=20, anchor="w").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(info_labels, text=f"마무리: {finish_value}", width=20, anchor="w").pack(side=tk.LEFT)
+
+        edit_frame = ttk.Frame(info_frame)
+        edit_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+
+        ttk.Label(edit_frame, text="시작").pack(side=tk.LEFT)
+        start_var = tk.StringVar(value=start_value)
+        start_entry = ttk.Entry(edit_frame, textvariable=start_var, width=15)
+        start_entry.pack(side=tk.LEFT, padx=(5, 20))
+
+        ttk.Label(edit_frame, text="마무리").pack(side=tk.LEFT)
+        finish_var = tk.StringVar(value=finish_value)
+        finish_entry = ttk.Entry(edit_frame, textvariable=finish_var, width=15)
+        finish_entry.pack(side=tk.LEFT, padx=(5, 20))
+
+        def save_dates():
+            self.evaluations_df.at[df_index, '시작'] = start_var.get().strip()
+            self.evaluations_df.at[df_index, '마무리'] = finish_var.get().strip()
+            messagebox.showinfo("Saved", "Dates updated.")
+            self.show_game_details(df_index)
+
+        ttk.Button(edit_frame, text="💾 Save Dates", command=save_dates).pack(side=tk.LEFT)
 
         split_frame = ttk.Frame(self.content_frame)
         split_frame.pack(fill=tk.BOTH, expand=True)
