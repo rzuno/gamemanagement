@@ -1,103 +1,84 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import csv
+from tkinter import ttk, messagebox
+import pandas as pd
 import os
-#This is a test change in the image-preview branch
 
-CSV_FILE = 'game_management.csv'
+class GameApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Game Management")
+        self.root.geometry("1200x800")
 
-class GameManagerApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title('Game Manager')
-        self.geometry('300x100')
+        # Data
+        self.evaluations_df = self.load_csv('data/game_evaluations.csv')
+        self.wishlist_df = self.load_csv('data/wish_list.csv')
 
-        add_btn = ttk.Button(self, text='Add Game', command=self.open_add_window)
-        add_btn.pack(pady=20)
+        # Main frame
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Ensure CSV exists
-        if not os.path.exists(CSV_FILE):
-            with open(CSV_FILE, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(['name', 'icon_path'])
+        # Left frame for the list of games and buttons
+        left_frame = ttk.Frame(main_frame, width=400)
+        left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
 
-    def open_add_window(self):
-        AddGameWindow(self)
+        # Right frame for game information
+        self.right_frame = ttk.Frame(main_frame)
+        self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-class AddGameWindow(tk.Toplevel):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.title('Add / Edit Game')
-        self.geometry('400x200')
+        # Game list
+        self.game_list_label = ttk.Label(left_frame, text="Played Games", font=("Arial", 14, "bold"))
+        self.game_list_label.pack(pady=5)
+        
+        self.game_listbox = tk.Listbox(left_frame, width=50, height=30)
+        self.game_listbox.pack(fill=tk.BOTH, expand=True)
+        self.populate_game_list()
 
-        # Placeholder for icon
-        self.icon_label = ttk.Label(self, text='[No Icon]', relief='solid', width=15, anchor='center')
-        self.icon_label.grid(row=0, column=0, rowspan=2, padx=10, pady=10)
+        # Buttons
+        button_frame = ttk.Frame(left_frame)
+        button_frame.pack(pady=10)
 
-        # Button to load image later (stub)
-        load_img_btn = ttk.Button(self, text='Load Icon', command=self.load_icon)
-        load_img_btn.grid(row=2, column=0, padx=10)
+        add_button = ttk.Button(button_frame, text="Add New Game", command=self.add_new_game)
+        add_button.grid(row=0, column=0, padx=5, pady=5)
 
-        # Name entry
-        ttk.Label(self, text='Game Name:').grid(row=0, column=1, sticky='w', padx=10)
-        self.name_var = tk.StringVar()
-        name_entry = ttk.Entry(self, textvariable=self.name_var, width=30)
-        name_entry.grid(row=1, column=1, padx=10)
+        modify_button = ttk.Button(button_frame, text="Modify Game Evaluation", command=self.modify_game_evaluation)
+        modify_button.grid(row=0, column=1, padx=5, pady=5)
 
-        # OK and Remove buttons
-        ok_btn = ttk.Button(self, text='OK', command=self.save_game)
-        ok_btn.grid(row=3, column=1, sticky='e', padx=10, pady=10)
-        remove_btn = ttk.Button(self, text='Remove', command=self.remove_game)
-        remove_btn.grid(row=3, column=0, sticky='w', padx=10, pady=10)
+        stats_button = ttk.Button(button_frame, text="Statistics", command=self.show_statistics)
+        stats_button.grid(row=1, column=0, padx=5, pady=5)
 
-    def load_icon(self):
-        # Placeholder stub for loading icon later
-        messagebox.showinfo('Info', 'Load icon functionality coming soon.')
+        wishlist_button = ttk.Button(button_frame, text="Wish List", command=self.show_wish_list)
+        wishlist_button.grid(row=1, column=1, padx=5, pady=5)
 
-    def save_game(self):
-        name = self.name_var.get().strip()
-        if not name:
-            messagebox.showwarning('Warning', 'Please enter a game name.')
-            return
+    def load_csv(self, file_path):
+        if os.path.exists(file_path):
+            try:
+                return pd.read_csv(file_path)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load {file_path}: {e}")
+                return pd.DataFrame()
+        else:
+            messagebox.showwarning("Warning", f"{file_path} not found.")
+            return pd.DataFrame()
 
-        # Append to CSV
-        with open(CSV_FILE, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow([name, ''])  # icon path empty for now
-        messagebox.showinfo('Saved', f'Game "{name}" added.')
-        self.destroy()
+    def populate_game_list(self):
+        self.game_listbox.delete(0, tk.END)
+        if not self.evaluations_df.empty:
+            for game_name in self.evaluations_df['게임명']:
+                self.game_listbox.insert(tk.END, game_name)
 
-    def remove_game(self):
-        name = self.name_var.get().strip()
-        if not name:
-            messagebox.showwarning('Warning', 'Please enter a game name to remove.')
-            return
+    def add_new_game(self):
+        messagebox.showinfo("Info", "Add New Game button clicked.")
 
-        # Read existing entries
-        updated = []
-        removed = False
-        with open(CSV_FILE, 'r', newline='', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            header = next(reader)
-            for row in reader:
-                if row[0] != name:
-                    updated.append(row)
-                else:
-                    removed = True
+    def modify_game_evaluation(self):
+        messagebox.showinfo("Info", "Modify Game Evaluation button clicked.")
 
-        if not removed:
-            messagebox.showinfo('Info', f'Game "{name}" not found.')
-            return
+    def show_statistics(self):
+        messagebox.showinfo("Info", "Statistics button clicked.")
 
-        # Write back
-        with open(CSV_FILE, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(header)
-            writer.writerows(updated)
+    def show_wish_list(self):
+        messagebox.showinfo("Info", "Wish List button clicked.")
 
-        messagebox.showinfo('Removed', f'Game "{name}" removed.')
-        self.destroy()
-
-if __name__ == '__main__':
-    app = GameManagerApp()
-    app.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = GameApp(root)
+    root.mainloop()

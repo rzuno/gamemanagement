@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.env/
+
+# IDE configs
+.vscode/
+
+# OS Files
+.DS_Store
+
+# Game asset heavy stuff
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.mp3
+*.wav
